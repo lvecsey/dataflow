@@ -15,6 +15,10 @@
 #include <openssl/md5.h>
 #include <arpa/inet.h>
 
+#ifdef __linux__
+#include <sys/sendfile.h>
+#endif
+
 #include "dataflow.h"
 
 #define TEMPLATE_FN "infile_dfserve.XXXXXX"
@@ -78,6 +82,13 @@ int main(int argc, char *argv[]) {
       
     fd = open(dat_fn, O_RDWR);
     retval = fstat(fd, &buf);
+
+#ifdef __linux__
+    {
+	off_t offset = sizeof(uint32_t) + 32;
+	bytes_written = sendfile(1, fd, &offset, buf.st_size);
+      }
+#else
     m = mmap(NULL, buf.st_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     if (m == MAP_FAILED) {
       perror("mmap");
@@ -91,9 +102,11 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
+    munmap(m, buf.st_size);
+#endif
+
     fprintf(stderr, "%s: Wrote %ld bytes.\n", __FUNCTION__, bytes_written);
   
-    munmap(m, buf.st_size);
     close(fd);
   
   break;
@@ -114,7 +127,7 @@ int main(int argc, char *argv[]) {
 	perror("mkstemp");
 	return -1;
       }
-
+      
       for (;;) {
 	bytes_read = read(0, data, sizeof(data));
 	if (bytes_read >= 0) {
