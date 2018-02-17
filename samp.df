@@ -1,0 +1,10 @@
+Host: dfstor2.example.org
+Backup-Host: 64.9.245.8
+Backup-Host: 93.184.216.34
+TTL: 86400
+Cache: 172800
+md5hash: 0b81376530023ce6644d4948f097995e
+key: artichoke 
+Content-Length: 4096
+
+
