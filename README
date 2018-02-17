@@ -1,0 +1,25 @@
+
+Each chunk of data that is spread around through the dataflow approach
+has an optional key string that can be used to look up the data chunk.
+There is also one or more Backup-Host that can be specified as either an
+ip address or a hostname. The idea is that you would keep appending additional
+backup hosts, and rarely purge or remove them unless there is some confidence
+that it isn't needed anymore.
+
+Content-Length is how long the chunk of data is.
+Cache time is measured in seconds. The same file can be served through the cache life of the dataflow chunk.
+TTL refers to the time to live of the data flow header being described, including the host and backup-host entries.
+md5hash is the hash of the data chunk and can also be used as a key of sorts.
+
+Note: It is up to the dfserve instance running on the target (upload) machine, to publish for example a json file of all the content-length's and md5sum's that have been uploaded. There is no confirmation given to the client that the upload has succeeded; it is done completely out-of-band.
+
+Before running dfserve, you can change the current working directory to the storage location such as /mnt/dfstor or an area such as ~/public_html/dfstor
+
+When pushing files to your dfserve host you will want to push it to all the backup (dfserve) hosts as well.
+
+
+
+
+
+
+
