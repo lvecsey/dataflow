@@ -7,7 +7,7 @@ dfserve : LIBS+=-lcrypto
 
 all : dfserve pulldf pushdf
 
-dfserve : dfserve.o
+dfserve : dfserve.o dataflow.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 pulldf : pulldf.o
