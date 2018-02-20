@@ -54,6 +54,9 @@ int main(int argc, char *argv[]) {
 
   uint32_t direction;
 
+  uint32_t sizeout;
+  uint32_t retcode;
+  
   const long int num_rnds = 4;
   int rnd_fd = open("/dev/urandom", O_RDONLY);
   uint64_t rnds[num_rnds];
@@ -83,9 +86,16 @@ int main(int argc, char *argv[]) {
     fd = open(dat_fn, O_RDWR);
     retval = fstat(fd, &buf);
 
+    sizeout = htonl(buf.st_size);
+    bytes_written = write(1, &sizeout, sizeof(uint32_t));
+    if (bytes_written != sizeof(uint32_t)) {
+      perror("write");
+      return -1;
+    }
+    
 #ifdef __linux__
     {
-	off_t offset = sizeof(uint32_t) + 32;
+	off_t offset = 0;
 	bytes_written = sendfile(1, fd, &offset, buf.st_size);
       }
 #else
@@ -105,6 +115,13 @@ int main(int argc, char *argv[]) {
     munmap(m, buf.st_size);
 #endif
 
+    retcode = htonl(DF_SUCCESS);
+    bytes_written = write(1, &retcode, sizeof(uint32_t));
+    if (bytes_written != sizeof(uint32_t)) {
+      perror("write");
+      return -1;
+    }
+    
     fprintf(stderr, "%s: Wrote %ld bytes.\n", __FUNCTION__, bytes_written);
   
     close(fd);
