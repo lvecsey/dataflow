@@ -3,6 +3,8 @@
 
 enum { DF_RETRIEVE, DF_PUBLISH };
 
+enum { DF_SUCCESS = 0x1000, DF_FAILURE };
+
 typedef struct {
 
   size_t content_length;
