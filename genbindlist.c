@@ -54,6 +54,8 @@ int main(int argc, char *argv[]) {
 	return -1;
       }
 
+      hp.port = htons(hp.port);
+
       bytes_written = write(out_fd, &hp, sizeof(hostport_t));
       if (bytes_written != sizeof(hostport_t)) {
 	perror("write");
