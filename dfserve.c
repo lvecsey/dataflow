@@ -89,11 +89,11 @@ hostport_t *read_bindlist(char *bindlist_fn, long int *num_binds) {
   
 }
 
-int write_replicateheaders(sockpack_t *sockpacks, long int num_reps, rephp_t *rephps) {
+int write_replicateheaders(sockpack_t *sockpacks, long int num_connections, rephp_t *rephps, long int num_reps) {
 
   rephp_t *base_rephps;
   
-  long int repno;
+  long int hostportno;
 
   hostport_t outgoing_hosthello;
   
@@ -109,9 +109,9 @@ int write_replicateheaders(sockpack_t *sockpacks, long int num_reps, rephp_t *re
 
   uint32_t sizeout;
   
-  for (repno = 0; repno < num_reps; repno++) {
+  for (hostportno = 0; hostportno < num_connections; hostportno++) {
     
-    s = sockpacks[repno].s;
+    s = sockpacks[hostportno].s;
 
     dfserve_cmd = htonl(DF_REPLICATE);
   
@@ -121,9 +121,9 @@ int write_replicateheaders(sockpack_t *sockpacks, long int num_reps, rephp_t *re
       return -1;
     }
 
-    memcpy(hp_match.ip_address, &sockpacks[repno].dest_addr.sin_addr, 4);
-    hp_match.port = sockpacks[repno].dest_addr.sin_port;
-    
+    memcpy(hp_match.ip_address, & (sockpacks[hostportno].dest_addr.sin_addr), 4);
+    hp_match.port = sockpacks[hostportno].dest_addr.sin_port;
+
     base_rephps = find_targetmatch(rephps, num_reps, hp_match);
     if (base_rephps == NULL) {
       sending_repcount = 0;
@@ -173,17 +173,26 @@ int write_replicateheaders(sockpack_t *sockpacks, long int num_reps, rephp_t *re
   return 0;
 
 }
+
+typedef struct {
+
+  long int num_outgoing;
+  long int total;
   
+} repcount_t;
+
 int main(int argc, char *argv[]) {
 
   dataflow_t df;
   
-  unsigned char bindip_address[4] = { 192, 168, 1, 50 };
+  unsigned char bindip_address[4] = { 0, 0, 0, 0 };
   
   char *bindlist_fn = argc>1 ? argv[1] : NULL;
   
   hostport_t *bindlist = NULL;
 
+  size_t len;
+  
   long int bindno;
   
   long int num_binds = 0;
@@ -194,10 +203,6 @@ int main(int argc, char *argv[]) {
 
   char data[4096];
   
-  char *line = NULL;
-  size_t len;
-  long int lineno;
-
   unsigned char md5hash[MD5_DIGEST_LENGTH];
 
   unsigned char incoming_md5str[MD5_DIGEST_LENGTH * 2];
@@ -222,7 +227,8 @@ int main(int argc, char *argv[]) {
   rephp_t rephps[MAX_HOSTPORTS];
 
   long int hostportno = 0;
-  long int num_reps = 0;
+
+  repcount_t repcounts = { 0, 0 };
 
   int debug = 1;
   
@@ -313,21 +319,21 @@ int main(int argc, char *argv[]) {
 
 	size_t fsize = 0;
 
-	sockpack_t *sockpacks;
+	sockpack_t *sockpacks = NULL;
 
 	socklen_t addrlen = sizeof(struct sockaddr_in); 
 	char rnd_filename[240];
 	char out_filename[240];
 
-	if (num_reps > 0) {
+	if (repcounts.num_outgoing > 0) {
 
-	  sockpacks = calloc(num_reps, sizeof(sockpack_t));
+	  sockpacks = calloc(repcounts.num_outgoing, sizeof(sockpack_t));
 	  if (sockpacks==NULL) {
 	    perror("calloc");
 	    return -1;
 	  }
 
-	  for (hostportno = 0; hostportno < num_reps; hostportno++) {
+	  for (hostportno = 0; hostportno < repcounts.num_outgoing; hostportno++) {
 
 	    sockpacks[hostportno].s = socket(AF_INET, SOCK_STREAM, 6);
 	    if (sockpacks[hostportno].s == -1) {
@@ -337,10 +343,8 @@ int main(int argc, char *argv[]) {
 
 	    memset(&sockpacks[hostportno].bind_addr, 0, sizeof(sockpacks[hostportno].bind_addr));
 	    sockpacks[hostportno].bind_addr.sin_family = AF_INET;
-	    sockpacks[hostportno].bind_addr.sin_port = htons(0);;
+	    sockpacks[hostportno].bind_addr.sin_port = htons(0);
 	    memcpy(&sockpacks[hostportno].bind_addr.sin_addr.s_addr, bindip_address, 4); 
-	    memset(&sockpacks[hostportno].bind_addr.sin_addr.s_addr, 0, sizeof(sockpacks[hostportno].bind_addr.sin_addr.s_addr));
-	    
 	    retval = bind(sockpacks[hostportno].s, (const struct sockaddr *) &sockpacks[hostportno].bind_addr, addrlen);
 	    if (retval == -1) {
 	      perror("bind");
@@ -349,23 +353,42 @@ int main(int argc, char *argv[]) {
 	  
 	  }
 
-	  for (hostportno = 0; hostportno < num_reps; hostportno++) {
+	  fprintf(stderr, "%s: Connecting to remote hosts.\n", __FUNCTION__);
+	  
+	  for (hostportno = 0; hostportno < repcounts.num_outgoing; hostportno++) {
 
+	    memset(&sockpacks[hostportno].dest_addr, 0, sizeof(sockpacks[hostportno].dest_addr));
+	    sockpacks[hostportno].dest_addr.sin_family = AF_INET;
+	    
+	    memcpy(&sockpacks[hostportno].dest_addr.sin_addr.s_addr, rephps[hostportno].hp.ip_address, 4);
+	    sockpacks[hostportno].dest_addr.sin_port = rephps[hostportno].hp.port;
+
+	    {
+	      unsigned char *ip_address = rephps[hostportno].hp.ip_address;
+	      long int portval = ntohs(rephps[hostportno].hp.port);
+		
+	      fprintf(stderr, "%s: Connecting to %u.%u.%u.%u:%ld\n", __FUNCTION__, ip_address[0], ip_address[1], ip_address[2], ip_address[3], portval);
+	    }
+	    
 	    retval = connect(sockpacks[hostportno].s, (const struct sockaddr *) &sockpacks[hostportno].dest_addr, addrlen);
 	    if (retval == -1) {
 	      fprintf(stderr, "%s: Trouble connecting to dest_addr.\n", __FUNCTION__);
 	    }
 	  
 	  }
-		
-	  retval = write_replicateheaders(sockpacks, num_reps, rephps + upto_targetcount(rephps, num_reps));
+
+	  fprintf(stderr, "%s: Writing header data.\n", __FUNCTION__);
+	  
+	  retval = write_replicateheaders(sockpacks, repcounts.num_outgoing, rephps, repcounts.total);
 	  if (retval == -1) {
 	    fprintf(stderr, "%s: Trouble writing all replicate headers.\n", __FUNCTION__);
 	    return -1;
 	  }
 	
 	}
-      
+
+	fprintf(stderr, "%s: Receiving (relaying) incoming data.\n", __FUNCTION__);
+	
 	len = strlen(TEMPLATE_FN);
 	memset(rnd_filename, 0, sizeof(rnd_filename));
 	strncpy(rnd_filename, TEMPLATE_FN, len);
@@ -386,7 +409,7 @@ int main(int argc, char *argv[]) {
 	      return -1;
 	    }
 
-	    for (hostportno = 0; hostportno < num_reps; hostportno++) {
+	    for (hostportno = 0; hostportno < repcounts.num_outgoing; hostportno++) {
 	      write(sockpacks[hostportno].s, data, len);
 	    }
 	  
@@ -436,9 +459,9 @@ int main(int argc, char *argv[]) {
 	    return -1;
 	  }
 
-	  if (num_reps > 0) {
+	  if (repcounts.num_outgoing > 0) {
 
-	    for (hostportno = 0; hostportno < num_reps; hostportno++) {
+	    for (hostportno = 0; hostportno < repcounts.num_outgoing; hostportno++) {
 	      close(sockpacks[hostportno].s);
 	    }
 	  
@@ -531,9 +554,10 @@ int main(int argc, char *argv[]) {
 	  return -1;
 	}
 
-	num_reps = sizeout / sizeof(rephp_t);
-
-	fprintf(stderr, "%s: num_reps=%ld\n", __FUNCTION__, num_reps);
+	repcounts.total = sizeout / sizeof(rephp_t);
+	repcounts.num_outgoing = upto_targetcount(rephps, repcounts.total);
+	
+	fprintf(stderr, "%s: repcount num_outgoing=%ld total=%ld\n", __FUNCTION__, repcounts.num_outgoing, repcounts.total);
       
       }
       
