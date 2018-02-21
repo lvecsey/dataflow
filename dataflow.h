@@ -1,7 +1,7 @@
 #ifndef DATAFLOW_H
 #define DATAFLOW_H
 
-enum { DF_RETRIEVE, DF_PUBLISH };
+enum { DF_RETRIEVE, DF_PUBLISH, DF_REPLICATE };
 
 enum { DF_SUCCESS = 0x1000, DF_FAILURE };
 
