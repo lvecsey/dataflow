@@ -541,8 +541,6 @@ int main(int argc, char *argv[]) {
       
   }
     
-  fprintf(stderr, "%s: MD5HASH contains %ld bytes.\n", __FUNCTION__, bytes_read);
-  
   while ((retval = getline(&line,&len,fp)) != -1) {
 
     fprintf(stderr, "%s: Got line=%s\n", __FUNCTION__, line);
