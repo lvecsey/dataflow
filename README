@@ -50,3 +50,10 @@ md5hash is the hash of the data chunk and can also be used as a key of sorts.
 
 Note: It is up to the dfserve instance running on the target (upload) machine, to publish for example a json file of all the content-length's and md5sum's that have been uploaded. There is no confirmation given to the client that the upload has succeeded; it is done completely out-of-band.
 
+On MacOS you can run
+
+    brew install ucspi-tcp
+    brew install openssl
+
+and edit the Makefile before compiling.
+
