@@ -5,7 +5,7 @@ CFLAGS=-O3 -Wall -g -pg
 
 dfserve : LIBS+=-lcrypto
 
-all : dfserve pulldf pushdf
+all : dfserve pulldf pushdf genrep
 
 dfserve : dfserve.o dataflow.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
@@ -15,3 +15,7 @@ pulldf : pulldf.o
 
 pushdf : pushdf.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
+
+genrep : genrep.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
+
