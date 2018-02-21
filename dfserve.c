@@ -150,6 +150,14 @@ int write_replicateheaders(sockpack_t *sockpacks, long int num_reps, rephp_t *re
 
     }
 
+    dfserve_cmd = htonl(DF_PUBLISH);
+  
+    bytes_written = write(s, &dfserve_cmd, sizeof(dfserve_cmd));
+    if (bytes_written != sizeof(dfserve_cmd)) {
+      perror("write");
+      return -1;
+    }
+    
   }
 
   return 0;
@@ -346,14 +354,6 @@ int main(int argc, char *argv[]) {
 	  return -1;
 	}
 	
-	dfserve_cmd = htonl(DF_PUBLISH);
-  
-	bytes_written = write(7, &dfserve_cmd, sizeof(dfserve_cmd));
-	if (bytes_written != sizeof(dfserve_cmd)) {
-	  perror("write");
-	  return -1;
-	}
-	  
       }
       
       len = strlen(TEMPLATE_FN);
