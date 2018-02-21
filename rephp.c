@@ -10,8 +10,10 @@ long int upto_targetcount(rephp_t *rephps, long int num_reps) {
   long int repno;
 
   long int count = 0;
+
+  uint16_t rep_match = htons(RP_HOST);
   
-  for (repno = 0; repno < num_reps && rephps[repno].rep == RP_HOST; repno++) {
+  for (repno = 0; repno < num_reps && rephps[repno].rep == rep_match; repno++) {
 
     count++;
 
