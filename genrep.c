@@ -17,6 +17,29 @@
 
 #include "rep.h"
 
+int contains_comment(char *str) {
+
+  char *ptr = str;
+
+  while (ptr[0]) {
+
+    if (ptr[0] == ' ' || ptr[0] == '\t') {
+      ptr++;
+      continue;
+    }
+
+    if (ptr[0] == '#') {
+      return 1;
+    }
+
+    ptr++;
+    
+  }
+    
+  return 0;
+  
+}
+
 int main(int argc, char *argv[]) {
 
   char *input_fn = argc>1 ? argv[1] : NULL;
@@ -46,6 +69,8 @@ int main(int argc, char *argv[]) {
 
       lineno++;
 
+      if (contains_comment(line)) continue;
+      
       if (!strncmp(line, "TARGET ", 7)) {
 
 	rep = htons(RP_TARGET);
