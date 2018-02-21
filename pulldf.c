@@ -20,6 +20,9 @@ int main(int argc, char *argv[]) {
 
   char *md5hash = argc>1 ? argv[1] : NULL;
 
+  off_t offset = argc>2 ? strtol(argv[2], NULL, 10) : 0;
+  size_t count = argc>3 ? strtol(argv[3], NULL, 10) : 0;
+  
   size_t len;
 
   ssize_t bytes_written;
@@ -27,7 +30,7 @@ int main(int argc, char *argv[]) {
   char buf[4096];
   ssize_t bytes_read;
 
-  size_t count;
+  size_t cnt;
   
   int debug = 0;
 
@@ -51,6 +54,26 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  {
+
+    uint32_t out;
+
+    out = htonl(offset);
+    bytes_written = write(7, &out, sizeof(uint32_t));
+    if (bytes_written != sizeof(uint32_t)) {
+      perror("write");
+      return -1;
+    }
+
+    out = htonl(count);    
+    bytes_written = write(7, &out, sizeof(uint32_t));
+    if (bytes_written != sizeof(uint32_t)) {
+      perror("write");
+      return -1;
+    }    
+    
+  }
+  
   bytes_read = read(6, &sizeout, sizeof(uint32_t));
   if (bytes_read != sizeof(uint32_t)) {
     perror("read");
@@ -61,10 +84,10 @@ int main(int argc, char *argv[]) {
   
   for (;sizeout > 0;) {
 
-    count = sizeout;
-    if (count > sizeof(buf)) count = sizeof(buf);
+    cnt = sizeout;
+    if (cnt > sizeof(buf)) cnt = sizeof(buf);
     
-    bytes_read = read(6, buf, count);
+    bytes_read = read(6, buf, cnt);
 
     if (debug) {
       fprintf(stderr, "%s: Read %ld bytes.\n", __FUNCTION__, bytes_read);

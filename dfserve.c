@@ -256,61 +256,86 @@ int main(int argc, char *argv[]) {
 
     switch(dfserve_cmd) {
     case DF_RETRIEVE:
-  
-      bytes_read = read(0, incoming_md5str, sizeof(incoming_md5str));
-      if (bytes_read <= 0) {
-	perror("read");
-	return -1;
-      }
 
       {
-	char *is = incoming_md5str;
-	sprintf(dat_fn, "%c%c%c/%.32s.dat", is[0], is[1], is[2], incoming_md5str);
-      }
-      
-      fd = open(dat_fn, O_RDWR);
-      retval = fstat(fd, &buf);
 
-      sizeout = htonl(buf.st_size);
-      bytes_written = write(1, &sizeout, sizeof(uint32_t));
-      if (bytes_written != sizeof(uint32_t)) {
-	perror("write");
-	return -1;
-      }
+	off_t offset;
+	size_t count;
+
+	uint32_t in;
+	
+	bytes_read = read(0, incoming_md5str, sizeof(incoming_md5str));
+	if (bytes_read <= 0) {
+	  perror("read");
+	  return -1;
+	}
+
+	{
+	  char *is = incoming_md5str;
+	  sprintf(dat_fn, "%c%c%c/%.32s.dat", is[0], is[1], is[2], incoming_md5str);
+	}
+
+	bytes_read = read(0, &in, sizeof(uint32_t));
+	if (bytes_read != sizeof(uint32_t)) {
+	  perror("read");
+	  return -1;
+	}
+
+	offset = ntohl(in);
+	
+	bytes_read = read(0, &in, sizeof(uint32_t));
+	if (bytes_read != sizeof(uint32_t)) {
+	  perror("read");
+	  return -1;
+	}
+
+	count = ntohl(in);
+	
+	fd = open(dat_fn, O_RDWR);
+	retval = fstat(fd, &buf);
+
+	sizeout = htonl(buf.st_size);
+	bytes_written = write(1, &sizeout, sizeof(uint32_t));
+	if (bytes_written != sizeof(uint32_t)) {
+	  perror("write");
+	  return -1;
+	}
     
 #ifdef __linux__
-      {
-	off_t offset = 0;
-	bytes_written = sendfile(1, fd, &offset, buf.st_size);
-      }
+	{
+	  off_t offset = 0;
+	  bytes_written = sendfile(1, fd, &offset, buf.st_size);
+	}
 #else
-      m = mmap(NULL, buf.st_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-      if (m == MAP_FAILED) {
-	perror("mmap");
-	return -1;
-      }
+	m = mmap(NULL, buf.st_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	if (m == MAP_FAILED) {
+	  perror("mmap");
+	  return -1;
+	}
 
-      len = buf.st_size;
-      bytes_written = write(1, m, len);
-      if (bytes_written != len) {
-	perror("write");
-	return -1;
-      }
+	len = buf.st_size;
+	bytes_written = write(1, m, len);
+	if (bytes_written != len) {
+	  perror("write");
+	  return -1;
+	}
 
-      munmap(m, buf.st_size);
+	munmap(m, buf.st_size);
 #endif
 
-      retcode = htonl(DF_SUCCESS);
-      bytes_written = write(1, &retcode, sizeof(uint32_t));
-      if (bytes_written != sizeof(uint32_t)) {
-	perror("write");
-	return -1;
-      }
+	retcode = htonl(DF_SUCCESS);
+	bytes_written = write(1, &retcode, sizeof(uint32_t));
+	if (bytes_written != sizeof(uint32_t)) {
+	  perror("write");
+	  return -1;
+	}
     
-      fprintf(stderr, "%s: Wrote %ld bytes.\n", __FUNCTION__, bytes_written);
+	fprintf(stderr, "%s: Wrote %ld bytes.\n", __FUNCTION__, bytes_written);
   
-      close(fd);
-  
+	close(fd);
+
+      }
+      
       break;
 
     case DF_PUBLISH:
