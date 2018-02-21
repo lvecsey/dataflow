@@ -21,7 +21,11 @@
 
 #include "dataflow.h"
 
+#include "hostport.h"
+
 #define TEMPLATE_FN "infile_dfserve.XXXXXX"
+
+#define MAX_HOSTPORTS 5000
 
 int main(int argc, char *argv[]) {
 
@@ -52,7 +56,7 @@ int main(int argc, char *argv[]) {
 
   ssize_t bytes_read;
 
-  uint32_t direction;
+  uint32_t dfserve_cmd;
 
   uint32_t sizeout;
   uint32_t retcode;
@@ -60,16 +64,21 @@ int main(int argc, char *argv[]) {
   const long int num_rnds = 4;
   int rnd_fd = open("/dev/urandom", O_RDONLY);
   uint64_t rnds[num_rnds];
+
+  hostport_t hostports[MAX_HOSTPORTS];
+
+  long int hostportno = 0;
+  long int num_hostports = 0;
   
-  bytes_read = read(0, &direction, sizeof(uint32_t));
+  bytes_read = read(0, &dfserve_cmd, sizeof(uint32_t));
   if (bytes_read != sizeof(uint32_t)) {
     perror("read");
     return -1;
   }
 
-  direction = ntohl(direction);
+  dfserve_cmd = ntohl(dfserve_cmd);
 
-  switch(direction) {
+  switch(dfserve_cmd) {
   case DF_RETRIEVE:
   
     bytes_read = read(0, incoming_md5str, sizeof(incoming_md5str));
@@ -201,10 +210,38 @@ int main(int argc, char *argv[]) {
       
       }
     
-      break;
-
     }
 
+    break;
+
+  case DF_REPLICATE:
+
+    {
+
+      bytes_read = read(0, &sizeout, sizeof(uint32_t));
+      if (bytes_read != sizeof(uint32_t)) {
+	perror("read");
+	return -1;
+      }
+
+      sizeout = htonl(sizeout);
+
+      if (sizeout > sizeof(hostport_t) * MAX_HOSTPORTS) {
+	sizeout = sizeof(hostport_t) * MAX_HOSTPORTS;
+      }
+
+      bytes_read = read(0, hostports, sizeout);
+      if (bytes_read != sizeout) {
+	perror("read");
+	return -1;
+      }
+
+      num_hostports = sizeout / sizeof(hostport_t);
+      
+    }
+      
+    break;
+      
   }
     
   fprintf(stderr, "%s: MD5HASH contains %ld bytes.\n", __FUNCTION__, bytes_read);
