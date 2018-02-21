@@ -95,6 +95,8 @@ int write_replicateheaders(sockpack_t *sockpacks, long int num_reps, rephp_t *re
   
   long int repno;
 
+  hostport_t outgoing_hosthello;
+  
   long int sending_repcount;
   
   hostport_t hp_match;
@@ -133,7 +135,15 @@ int write_replicateheaders(sockpack_t *sockpacks, long int num_reps, rephp_t *re
       sizeout = sizeof(rephp_t) * sending_repcount;
       
     }
+
+    outgoing_hosthello = hp_match;
     
+    bytes_written = write(s, &outgoing_hosthello, sizeof(hostport_t));
+    if (bytes_written != sizeof(hostport_t)) {
+      perror("write");
+      return -1;
+    }
+      
     bytes_written = write(s, &sizeout, sizeof(sizeout));
     if (bytes_written != sizeof(sizeout)) {
       perror("write");
