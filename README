@@ -1,4 +1,39 @@
 
+You can launch dfserve using tcpserver, specifying a specific public or private ip and port to bind to and this information will be utilized.
+
+dfserve can operate either on a SAN or distributed storage layer like ceph, in which case the underlying filesystem will be accessed on all machines, or by using the replicate feature which will redistribute content to multiple other dfserve processes. In order for this to work, the clients need to know ahead of time the network topology of any private addresses for example that will be reachable beyond public ips, or port forwarded locations.
+
+Before running dfserve, you can change the current working directory to the storage location such as /mnt/dfstor or an area such as ~/public_html/dfstor
+
+In the simplest case you can push files to your dfserve host as well as individually send them to each backup dfserve host as well. You can then proceed with pull requests from any dfserve process.
+Alternatively, have a file system that is accessible by all dfserve processes so that changes will be visible across the system as soon as the first publish succeeds.
+Finally, there is a replication approach which can be used which is described below (no distributed filesystem or SAN needed)
+
+There is a way to tell the dfserve that you are talking to, to replicate data to one or more additional backup hosts. Once you inform it of other dfserve processes to talk to it will do this as you upload your data. This is convenient because you just have to send the data once, and it can be replicated (locally) on the other side to many additional servers.
+
+In order for dfserve to know which addresses it is responsible for, dfserve effectively needs to access a bindlist.dat file. It contains a list of host and port pairs that dfserve should replicate for. Often you may be receiving through multiple addresses, such as connections initiated on the local network through a private ip, and separately a port forwarding on your router with a public ip destination. In this case you should keep a bindlist.txt file using ipaddress:port pairs and generate bindlist.dat as follows:
+
+    ./genbindlist < bindlist.txt > bindlist.dat
+
+    cd /mnt/disk/dfstor
+
+    tcpserver -vRHl0 192.168.1.50 6250 /path/to/dfserve /path/to/bindlist.dat
+
+Your server should now be ready and able to further replicate content elsewhere, as designated by clients.
+
+Continuing with this example, on the client side replicate_list.txt contains ipaddress:port pairs on each line describing which sessions to initiate when you publish to a dfserve. There is also a TARGET line specified, to separate another set of ipaddress:port pairs that will be used deeper in the communication process. Each dfserve process will connect to a set of host pairs and then essentially send a targetted list of new connections to make, when communicating further.
+
+    ./genrep < replicate_list.txt > repliace_list.dat
+
+You can feed the binary encoded replicate_list.dat file to pushdf.
+
+    export REPLICATE_FN=./replicate_list.dat
+    tcpclient -vRHl0 ip.ad.re.ss port ./pushdf < uploadfile.dat
+
+--
+
+Working with .df files
+
 Each chunk of data that is spread around through the dataflow approach
 has an optional key string that can be used to look up the data chunk.
 There is also one or more Backup-Host that can be specified as either an
@@ -11,27 +46,7 @@ Cache time is measured in seconds. The same file can be served through the cache
 TTL refers to the time to live of the data flow header being described, including the host and backup-host entries.
 md5hash is the hash of the data chunk and can also be used as a key of sorts.
 
+--
+
 Note: It is up to the dfserve instance running on the target (upload) machine, to publish for example a json file of all the content-length's and md5sum's that have been uploaded. There is no confirmation given to the client that the upload has succeeded; it is done completely out-of-band.
-
-Before running dfserve, you can change the current working directory to the storage location such as /mnt/dfstor or an area such as ~/public_html/dfstor
-
-When pushing files to your dfserve host you will want to push it to all the backup (dfserve) hosts as well.
-
-There is a way to tell the dfserve that you are talking to, to replicate data to a backup host. Once you inform it of other dfserve processes to talk to it will do this as you upload your data. This is convenient because you just have to send the data once, and it can be replicated (locally) on the other side to many additional servers.
-
-In this example, replicate_list.txt contains ipaddress:port pairs on each line.
-There is also a TARGET line specified, to separate another set of ipaddress:port pairs that will be used deeper in the communication process. Each dfserve process will connect to a set of host pairs and then strip those away, sending the remaining list onwards.
-
-    ./genrep < replicate_list.txt > repliace_list.dat
-
-You can feed the binary encoded replicate_list.dat file to pushdf.
-
-    export REPLICATE_FN=./replicate_list.dat
-    tcpclient -vRHl0 ip.ad.re.ss port ./pushdf < uploadfile.dat
-
-
-
-
-
-
 
