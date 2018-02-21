@@ -28,7 +28,16 @@ Continuing with this example, on the client side replicate_list.txt contains ipa
 You can feed the binary encoded replicate_list.dat file to pushdf.
 
     export REPLICATE_FN=./replicate_list.dat
+    echo '<HTML><BODY>Sample file</BODY></HTML>' > uploadfile.dat
     tcpclient -vRHl0 ip.ad.re.ss port ./pushdf < uploadfile.dat
+
+If the environment variable is omitted, just a basic upload will take place, without any attempt at replication.
+
+Retrieval:
+
+    tcpclient -vRHl0 ip.ad.re.ss port ./pulldf b0530408165b6d165ebf0cd9a412baf5 > /tmp/output.dat
+
+The MD5 string can be calculated from the file you uploaded (md5sum uploadfile.dat) or you can look at the file directory structure under the server to determine how the transfer was saved. You can run a pulldf against each of the dfserve instances you have running to confirm that the data is there.
 
 --
 
