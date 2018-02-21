@@ -32,7 +32,8 @@ int show_rep(rephp_t *rh) {
 
   {
     unsigned char *ip_address = rh->hp.ip_address;
-    printf("%u.%u.%u.%u:%u\n", ip_address[0], ip_address[1], ip_address[2], ip_address[3], rh->hp.port);
+    long int portval = ntohs(rh->hp.port);
+    printf("%u.%u.%u.%u:%ld\n", ip_address[0], ip_address[1], ip_address[2], ip_address[3], portval);
   }
 	   
   return 0;
