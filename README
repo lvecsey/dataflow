@@ -17,6 +17,18 @@ Before running dfserve, you can change the current working directory to the stor
 
 When pushing files to your dfserve host you will want to push it to all the backup (dfserve) hosts as well.
 
+There is a way to tell the dfserve that you are talking to, to replicate data to a backup host. Once you inform it of other dfserve processes to talk to it will do this as you upload your data. This is convenient because you just have to send the data once, and it can be replicated (locally) on the other side to many additional servers.
+
+In this example, replicate_list.txt contains ipaddress:port pairs on each line.
+There is also a TARGET line specified, to separate another set of ipaddress:port pairs that will be used deeper in the communication process. Each dfserve process will connect to a set of host pairs and then strip those away, sending the remaining list onwards.
+
+    ./genrep < replicate_list.txt > repliace_list.dat
+
+You can feed the binary encoded replicate_list.dat file to pushdf.
+
+    export REPLICATE_FN=./replicate_list.dat
+    tcpclient -vRHl0 ip.ad.re.ss port ./pushdf < uploadfile.dat
+
 
 
 
