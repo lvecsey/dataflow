@@ -217,6 +217,8 @@ int main(int argc, char *argv[]) {
   long int hostportno = 0;
   long int num_reps = 0;
 
+  int debug = 1;
+  
   {
     char *env_PROTO = getenv("PROTO");
     if (env_PROTO == NULL) {
@@ -446,11 +448,13 @@ int main(int argc, char *argv[]) {
 
     {
 
-      char *env_TCPLOCALIP = getenv("TCPLOCALIP");
-      char *env_TCPLOCALPORT = getenv("TCPLOCALPORT");
+      hostport_t incoming_hosthello;
 
       hostport_t target;
-
+      
+      char *env_TCPLOCALIP = getenv("TCPLOCALIP");
+      char *env_TCPLOCALPORT = getenv("TCPLOCALPORT");
+      
       if (bindlist_fn != NULL) {
 	bindlist = read_bindlist(bindlist_fn, &num_binds);
 	if (bindlist == NULL) {
@@ -464,6 +468,10 @@ int main(int argc, char *argv[]) {
       if (env_TCPLOCALIP != NULL && env_TCPLOCALPORT != NULL) {
 
 	long int ipvals[4];
+
+	if (debug) {
+	  fprintf(stderr, "%s: TCPLOCALIP=%s TCPLOCALPORT=%s\n", __FUNCTION__, env_TCPLOCALIP, env_TCPLOCALPORT);
+	}
 	
 	retval = sscanf(env_TCPLOCALIP, "%ld.%ld.%ld.%ld", ipvals+0, ipvals+1, ipvals+2, ipvals+3);
 	if (retval!=4) {
@@ -478,6 +486,23 @@ int main(int argc, char *argv[]) {
 
 	target.port = strtol(env_TCPLOCALPORT,NULL,10);
 
+      }
+
+      bytes_read = read(0, &incoming_hosthello, sizeof(hostport_t));
+      if (bytes_read != sizeof(hostport_t)) {
+	perror("read");
+	return -1;
+      }
+
+      for (bindno = 0; bindno < num_binds; bindno++) {
+
+	if (!memcmp(&incoming_hosthello, bindlist+bindno, sizeof(hostport_t))) break;
+	
+      }
+
+      if (bindno == num_binds) {
+	fprintf(stderr, "%s: Incoming hostport hello did not match anything in our bindlist.\n", __FUNCTION__);
+	return -1;
       }
       
       bytes_read = read(0, &sizeout, sizeof(uint32_t));
