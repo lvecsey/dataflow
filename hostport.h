@@ -10,4 +10,6 @@ typedef struct __attribute__ ((packed)) {
   
 } hostport_t;
 
+int fill_hostport(hostport_t *hp, char *str);
+
 #endif
