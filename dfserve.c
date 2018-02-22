@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
 	size_t count;
 
 	uint32_t in;
-	
+
 	bytes_read = read(0, incoming_md5str, sizeof(incoming_md5str));
 	if (bytes_read <= 0) {
 	  perror("read");
@@ -300,12 +300,11 @@ int main(int argc, char *argv[]) {
 	  perror("write");
 	  return -1;
 	}
-    
+
+	len = (!count || count > buf.st_size) ? buf.st_size : count;
+	
 #ifdef __linux__
-	{
-	  off_t offset = 0;
-	  bytes_written = sendfile(1, fd, &offset, buf.st_size);
-	}
+	bytes_written = sendfile(1, fd, &offset, len);
 #else
 	m = mmap(NULL, buf.st_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 	if (m == MAP_FAILED) {
@@ -313,8 +312,7 @@ int main(int argc, char *argv[]) {
 	  return -1;
 	}
 
-	len = buf.st_size;
-	bytes_written = write(1, m, len);
+	bytes_written = write(1, m + offset, len);
 	if (bytes_written != len) {
 	  perror("write");
 	  return -1;
