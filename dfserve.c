@@ -271,7 +271,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	{
-	  char *is = incoming_md5str;
+	  unsigned char *is = incoming_md5str;
 	  sprintf(dat_fn, "%c%c%c/%.32s.dat", is[0], is[1], is[2], incoming_md5str);
 	}
 
