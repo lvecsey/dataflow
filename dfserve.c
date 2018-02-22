@@ -548,17 +548,27 @@ int main(int argc, char *argv[]) {
 	  return -1;
 	}
 
-	for (bindno = 0; bindno < num_binds; bindno++) {
+	if (!memcmp(&target, &incoming_hosthello, sizeof(hostport_t))) {
 
-	  if (!memcmp(&incoming_hosthello, bindlist+bindno, sizeof(hostport_t))) break;
+	  fprintf(stderr, "%s: Incoming hosthello matched tcpserver session.\n", __FUNCTION__);
+
+	}
+
+	else {
 	
-	}
+	  for (bindno = 0; bindno < num_binds; bindno++) {
 
-	if (bindno == num_binds) {
-	  fprintf(stderr, "%s: Incoming hostport hello did not match anything in our bindlist.\n", __FUNCTION__);
-	  return -1;
+	    if (!memcmp(&incoming_hosthello, bindlist+bindno, sizeof(hostport_t))) break;
+	
+	  }
+
+	  if (bindno == num_binds) {
+	    fprintf(stderr, "%s: Incoming hosthello match failure in our bindlist.\n", __FUNCTION__);
+	    return -1;
+	  }
+
 	}
-      
+	
 	bytes_read = read(0, &sizeout, sizeof(uint32_t));
 	if (bytes_read != sizeof(uint32_t)) {
 	  perror("read");
